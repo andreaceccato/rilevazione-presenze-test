@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tool API PWA</title>
+<title>Tool API PWA - Stile e Filtri</title>
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
@@ -12,20 +12,148 @@
 <meta name="theme-color" content="#4caf50">
 
 <style>
-body{font-family:Arial;max-width:900px;margin:auto;padding:20px;}
-table{width:100%;border-collapse:collapse;margin-bottom:10px;}
-td,th{border:1px solid #ddd;padding:6px;}
-input[type=text]{width:100%;box-sizing:border-box;}
-button{padding:6px 10px;margin:2px;}
-.progress{width:100%;border:1px solid #ccc;height:22px;margin-top:10px;}
-.bar{height:100%;background:#4caf50;transition:width .3s;}
-.status-ok{color:green;font-weight:bold;}
-.status-fail{color:red;font-weight:bold;}
-#qr-reader{position:relative;width:300px;height:300px;margin-top:10px;}
-#qr-overlay{position:absolute;top:0;left:0;width:100%;height:100%;border:3px solid red;box-sizing:border-box;pointer-events:none;}
-#laser{position:absolute;top:0;left:0;width:100%;height:2px;background:rgba(255,0,0,0.8);animation:laserMove 1.5s linear infinite;}
-@keyframes laserMove{0%{top:0;}50%{top:calc(100% - 2px);}100%{top:0;}}
-@media(max-width:480px){#qr-reader{width:100%;height:300px;}}
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+    background: #f5f5f5;
+  }
+
+  h2, h3 {
+    color: #333;
+  }
+
+  input[type=text] {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    margin-bottom: 8px;
+  }
+
+  input[type=text]:focus {
+    border-color: #4caf50;
+    outline: none;
+  }
+
+  button {
+    padding: 6px 12px;
+    margin: 2px;
+    border: none;
+    border-radius: 4px;
+    background: #4caf50;
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  button:hover {
+    background: #45a049;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  thead {
+    background: #4caf50;
+    color: #fff;
+  }
+
+  th, td {
+    padding: 8px 10px;
+    text-align: left;
+  }
+
+  tr:nth-child(even) {
+    background: #f9f9f9;
+  }
+
+  #table-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+
+  #qr-reader {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    margin-top: 10px;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+
+  #qr-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 3px solid red;
+    box-sizing: border-box;
+    pointer-events: none;
+    border-radius: 6px;
+  }
+
+  #laser {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: rgba(255, 0, 0, 0.8);
+    animation: laserMove 1.5s linear infinite;
+  }
+
+  @keyframes laserMove {
+    0% {
+      top: 0;
+    }
+
+    50% {
+      top: calc(100% - 2px);
+    }
+
+    100% {
+      top: 0;
+    }
+  }
+
+  .progress {
+    width: 100%;
+    border: 1px solid #ccc;
+    height: 22px;
+    margin-top: 10px;
+    border-radius: 4px;
+    background: #eee;
+  }
+
+  .bar {
+    height: 100%;
+    background: #4caf50;
+    transition: width 0.3s;
+    border-radius: 4px;
+  }
+
+  .status-ok {
+    color: green;
+    font-weight: bold;
+  }
+
+  .status-fail {
+    color: red;
+    font-weight: bold;
+  }
 </style>
 </head>
 <body>
@@ -33,18 +161,23 @@ button{padding:6px 10px;margin:2px;}
 <div id="app">
 
 <h2>Lista persone</h2>
+
+<h3>Filtra lista:</h3>
+<input type="text" v-model="filterText" placeholder="Cerca codice o nominativo">
+
+<div id="table-container">
 <table>
 <thead>
 <tr>
-<th>codicePersona</th>
-<th>labelNominativo</th>
-<th>abilitato</th>
+<th>Codice Persona</th>
+<th>Nominativo</th>
+<th>Abilitato</th>
 <th>Stato</th>
 <th></th>
 </tr>
 </thead>
 <tbody>
-<tr v-for="(p,i) in persone" :key="i">
+<tr v-for="(p,i) in filteredPersone" :key="i">
 <td><input v-model="p.codicePersona"></td>
 <td><input v-model="p.labelNominativo"></td>
 <td style="text-align:center"><input type="checkbox" v-model="p.abilitato"></td>
@@ -56,6 +189,7 @@ button{padding:6px 10px;margin:2px;}
 </tr>
 </tbody>
 </table>
+</div>
 
 <button @click="add">+ aggiungi</button>
 <hr>
@@ -70,7 +204,7 @@ button{padding:6px 10px;margin:2px;}
 </div>
 
 <br><br>
-<button @click="start" :disabled="running">Avvia chiamate API</button>
+<button @click="start" :disabled="running">INVIA</button>
 <button @click="exportJson">Export JSON</button>
 <input type="file" @change="importJson">
 
@@ -84,7 +218,7 @@ button{padding:6px 10px;margin:2px;}
 <div v-if="errors.length">
 <p>❌ {{errors.length}} chiamate fallite</p>
 <ul>
-<li v-for="e in errors">{{e.codicePersona}} - {{e.labelNominativo}}</li>
+<li v-for="e in errors">{{e.message}}</li>
 </ul>
 </div>
 </div>
@@ -92,86 +226,151 @@ button{padding:6px 10px;margin:2px;}
 </div>
 
 <script>
-const {createApp}=Vue
+const { createApp } = Vue;
 
 createApp({
-data(){
-return{
-persone:[],
-codice:"",
-percent:0,
-running:false,
-finished:false,
-errors:[]
-}
-},
-mounted(){
-const saved = localStorage.getItem("listaPersone")
-if(saved) this.persone = JSON.parse(saved)
-
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js')
-    .then(()=>console.log('Service Worker registrato'))
-    .catch(err=>console.log(err));
-}
-},
-watch:{
-persone:{handler(){localStorage.setItem("listaPersone",JSON.stringify(this.persone))},deep:true}
-},
-methods:{
-add(){this.persone.push({codicePersona:"",labelNominativo:"",abilitato:false,status:""})},
-remove(i){this.persone.splice(i,1)},
-exportJson(){
-const data=JSON.stringify(this.persone,null,2)
-const blob=new Blob([data],{type:"application/json"})
-const url=URL.createObjectURL(blob)
-const a=document.createElement("a")
-a.href=url;a.download="lista.json";a.click();URL.revokeObjectURL(url)
-},
-importJson(e){
-const file=e.target.files[0];if(!file) return
-const reader=new FileReader()
-reader.onload=(event)=>{this.persone=JSON.parse(event.target.result)}
-reader.readAsText(file)
-},
-startScan(){
-const qr = new Html5Qrcode("qr-reader")
-qr.start(
-  {facingMode:"environment"},
-  {fps:10, qrbox:250},
-  (decodedText)=>{
-    this.codice = decodedText;
-    if(navigator.vibrate) navigator.vibrate(200);
-    qr.stop().catch(()=>{});
+  data() {
+    return {
+      persone: [],
+      codice: "",
+      percent: 0,
+      running: false,
+      finished: false,
+      logs: [], // {message: string, type: 'ok'|'error'}
+      errors: [], // {message: string}
+      filterText: "",
+      apiUrl: "/.netlify/functions/proxy",
+    };
   },
-  (err)=>{}
-).catch(err=>{console.log("Impossibile accedere alla camera",err);});
-},
-async start(){
-this.running=true; this.finished=false; this.errors=[]; this.percent=0
-const totale=this.persone.length
-let done=0
-const concurrency=5
-let queue=[...this.persone]
-const promises=[]
-const processNext=async ()=>{
-if(queue.length===0) return
-const p=queue.shift()
-try{
-const payload={codice:this.codice,persona:p}
-const res=await fetch("https://example.com/api/test",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
-if(!res.ok) throw new Error()
-p.status="ok"
-}catch(e){p.status="fail"; this.errors.push(p)}
-done++; this.percent=Math.round(done/totale*100)
-await processNext()
-}
-for(let i=0;i<concurrency;i++) promises.push(processNext())
-await Promise.all(promises)
-this.running=false; this.finished=true
-}
-}
-}).mount("#app")
+  mounted() {
+    const saved = localStorage.getItem("listaPersone");
+    if (saved) this.persone = JSON.parse(saved);
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js")
+        .then(() => console.log("Service Worker registrato"))
+        .catch(err => console.log(err));
+    }
+  },
+  watch: {
+    persone: {
+      handler() {
+        localStorage.setItem("listaPersone", JSON.stringify(this.persone));
+      },
+      deep: true
+    }
+  },
+  computed: {
+    filteredPersone() {
+      if (!this.filterText) return this.persone;
+      const text = this.filterText.toLowerCase();
+      return this.persone.filter(p =>
+        p.codicePersona.toLowerCase().includes(text) ||
+        p.labelNominativo.toLowerCase().includes(text)
+      );
+    }
+  },
+  methods: {
+    add() {
+      this.persone.push({
+        codicePersona: "",
+        labelNominativo: "",
+        abilitato: false,
+        status: ""
+      });
+    },
+    remove(i) {
+      this.persone.splice(i, 1);
+    },
+    exportJson() {
+      const data = JSON.stringify(this.persone, null, 2);
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "lista.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+    importJson(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        this.persone = JSON.parse(event.target.result);
+      };
+      reader.readAsText(file);
+    },
+    startScan() {
+      const qr = new Html5Qrcode("qr-reader");
+      qr.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          this.codice = decodedText;
+          if (navigator.vibrate) navigator.vibrate(200);
+          qr.stop().catch(() => {});
+        },
+        (err) => {}
+      ).catch(err => {
+        console.log("Impossibile accedere alla camera", err);
+      });
+    },
+    async start() {
+      this.running = true;
+      this.finished = false;
+      this.errors = [];
+      this.percent = 0;
+      const totale = this.persone.length;
+      let done = 0;
+      const concurrency = 5;
+      let queue = [...this.persone];
+      const promises = [];
+      const processNext = async () => {
+        if (queue.length === 0) return;
+        const p = queue.shift();
+        try {
+          const payload = {
+            autenticazione: true,
+            dati_addizionali: {longitudine: '', latitudine: '', timestamp: Date.now()}, 
+            matricola_studente: p.codicePersona,
+            lingua: 'it', 
+            device_token: 'device_token',
+            posto: '000',
+            codice_lezione: this.codice,
+            action: 'CreateFromJSON'
+          };
+          const res = await fetch(this.apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "*/*" },
+            body: JSON.stringify(payload)
+          });
+          console.log(res);
+          if (!res.ok) throw new Error();
+          if (res.result !== "failure" && res.result !== "warning") {
+            p.status = "ok";
+          } else {
+            p.status = "fail";
+          }
+          this.logs.push({status: p.status,message: `[${p.codicePersona} ${p.labelNominativo}]: ${res.message}`, result: res.result});
+        } catch (e) {
+          console.log(e);
+          p.status = "fail";
+          const message = `[${p.codicePersona} ${p.labelNominativo}]: ${e.message}`;
+          this.logs.push({status: "fail", message: message, result: res.result });
+          this.errors.push({ message });
+        }
+        done++;
+        this.percent = Math.round(done / totale * 100);
+        await processNext();
+      };
+      for (let i = 0; i < concurrency; i++) promises.push(processNext());
+      await Promise.all(promises);
+      this.running = false;
+      this.finished = true;
+    }
+  }
+}).mount("#app");
 </script>
 
 </body>
