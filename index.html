@@ -214,11 +214,11 @@
 </div>
 
 <div v-if="finished">
-<p v-if="errors.length==0">✔ Tutte le chiamate completate</p>
-<div v-if="errors.length">
-<p>❌ {{errors.length}} chiamate fallite</p>
+<p v-if="logsError.length == 0">✔ Tutte le chiamate completate</p>
+<div v-if="logsError.length">
+<p>❌ {{logsError.length}} chiamate fallite</p>
 <ul>
-<li v-for="e in errors">{{e.message}}</li>
+<li v-for="e in logsError">{{e.message}}</li>
 </ul>
 </div>
 </div>
@@ -268,6 +268,9 @@ createApp({
         p.codicePersona.toLowerCase().includes(text) ||
         p.labelNominativo.toLowerCase().includes(text)
       );
+    },
+    logsError() {
+      return this.logs.filter(l => l.status === "fail");
     }
   },
   methods: {
@@ -354,7 +357,7 @@ createApp({
           } else {
             p.status = "fail";
           }
-          this.logs.push({status: p.status, message: `[${p.codicePersona} ${p.labelNominativo}]: ${res.message}`, result: data.result});
+          this.logs.push({status: p.status, message: `[${p.codicePersona} ${p.labelNominativo}]: ${data.message}`, result: data.result});
         } catch (e) {
           console.log(e);
           p.status = "fail";
