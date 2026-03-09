@@ -352,12 +352,12 @@ createApp({
           } else {
             p.status = "fail";
           }
-          this.logs.push({status: p.status,message: `[${p.codicePersona} ${p.labelNominativo}]: ${res.message}`, result: res.result});
+          this.logs.push({status: p.status, message: `[${p.codicePersona} ${p.labelNominativo}]: ${res.message}`, result: res.result});
         } catch (e) {
           console.log(e);
           p.status = "fail";
           const message = `[${p.codicePersona} ${p.labelNominativo}]: ${e.message}`;
-          this.logs.push({status: "fail", message: message, result: res.result });
+          this.logs.push({status: "fail", message: message, result: "error"});
           this.errors.push({ message });
         }
         done++;
