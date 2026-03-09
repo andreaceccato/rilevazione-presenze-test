@@ -83,6 +83,13 @@
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   }
 
+  #in-code {
+    height: 30px;
+    border-radius: 4px;
+    border: 1px solid #4caf50;
+    font-size: 1.1em;
+  }
+
   #qr-reader {
     position: relative;
     width: 300px;
@@ -91,6 +98,9 @@
     border-radius: 6px;
     overflow: hidden;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  }
+  .display-none {
+    display: none;
   }
 
   #qr-overlay {
@@ -195,10 +205,10 @@
 <hr>
 
 <h3>Codice</h3>
-<input v-model="codice">
+<input id="in-code"v-model="codice" placeholder="Inserisci il Codice Lezione"> oppure scansiona QR code:
 <button @click="startScan">📷 QR</button>
 
-<div id="qr-reader">
+<div id="qr-reader" :class="{'display-none': !scanning}">
   <div id="qr-overlay"></div>
   <div id="laser"></div>
 </div>
@@ -231,13 +241,13 @@ const { createApp } = Vue;
 createApp({
   data() {
     return {
+      scanning: false,
       persone: [],
       codice: "",
       percent: 0,
       running: false,
       finished: false,
-      logs: [], // {message: string, type: 'ok'|'error'}
-      errors: [], // {message: string}
+      logs: [], // {message: string, result: string, sttaus: string'}
       filterText: "",
       apiUrl: "/.netlify/functions/proxy",
     };
@@ -305,14 +315,21 @@ createApp({
       reader.readAsText(file);
     },
     startScan() {
+      if (this.scanning) {
+        this.scanning = false;
+        return
+      }
+      this.scanning = true;
       const qr = new Html5Qrcode("qr-reader");
       qr.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
         (decodedText) => {
           this.codice = decodedText;
+          this.scanning = false;
           if (navigator.vibrate) navigator.vibrate(200);
           qr.stop().catch(() => {});
+          this.start();
         },
         (err) => {}
       ).catch(err => {
@@ -322,7 +339,7 @@ createApp({
     async start() {
       this.running = true;
       this.finished = false;
-      this.errors = [];
+      this.logs = [];
       this.percent = 0;
       const totale = this.persone.length;
       let done = 0;
@@ -363,7 +380,7 @@ createApp({
           p.status = "fail";
           const message = `[${p.codicePersona} ${p.labelNominativo}]: ${e.message}`;
           this.logs.push({status: "fail", message: message, result: "error"});
-          this.errors.push({ message });
+  
         }
         done++;
         this.percent = Math.round(done / totale * 100);
