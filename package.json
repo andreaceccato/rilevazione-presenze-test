@@ -1,0 +1,22 @@
+{
+  "name": "rilevazione-presenze-test",
+  "version": "1.0.0",
+  "description": "Test",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andreaceccato/rilevazione-presenze-test.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/andreaceccato/rilevazione-presenze-test/issues"
+  },
+  "homepage": "https://github.com/andreaceccato/rilevazione-presenze-test#readme",
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}
