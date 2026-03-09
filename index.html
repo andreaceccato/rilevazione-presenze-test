@@ -348,6 +348,7 @@ createApp({
           console.log(res);
           if (!res.ok) throw new Error();
           const data = await res.json();
+          console.log(data);
           if (data.result !== "failure" && data.result !== "warning") {
             p.status = "ok";
           } else {
