@@ -347,12 +347,13 @@ createApp({
           });
           console.log(res);
           if (!res.ok) throw new Error();
-          if (res.result !== "failure" && res.result !== "warning") {
+          const data = await res.json();
+          if (data.result !== "failure" && data.result !== "warning") {
             p.status = "ok";
           } else {
             p.status = "fail";
           }
-          this.logs.push({status: p.status, message: `[${p.codicePersona} ${p.labelNominativo}]: ${res.message}`, result: res.result});
+          this.logs.push({status: p.status, message: `[${p.codicePersona} ${p.labelNominativo}]: ${res.message}`, result: data.result});
         } catch (e) {
           console.log(e);
           p.status = "fail";
