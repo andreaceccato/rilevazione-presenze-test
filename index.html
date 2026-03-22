@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tool API PWA - Stile e Filtri</title>
+<title>Tool Registrazione Presenze PWA</title>
 
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 <script src="https://unpkg.com/html5-qrcode"></script>
@@ -164,6 +164,28 @@
     color: red;
     font-weight: bold;
   }
+
+  .div-import {
+    position: relative;
+  }
+  .div-import button {
+    position: relative;
+  }
+  .div-import input {
+    display: inline-block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    opacity: 0;
+    z-index: 1;
+    cursor: pointer;
+  }
+  .div-actions-top {
+    display: flex;
+  }
+
 </style>
 </head>
 <body>
@@ -171,6 +193,15 @@
 <div id="app">
 
 <h2>Lista persone</h2>
+<div class="div-actions-top">
+  <div class="div-export">
+    <button @click="exportJson">ESPORTA LISTA</button>
+  </div>
+  <div class="div-import">
+    <button >IMPORTA LISTA</button>
+    <input class="in-import" type="file" @change="importJson" placeholder="IMPORTA LISTA">
+  </div>
+</div>
 
 <h3>Filtra lista:</h3>
 <input type="text" v-model="filterText" placeholder="Cerca codice o nominativo">
@@ -205,7 +236,7 @@
 <hr>
 
 <h3>Codice</h3>
-<input id="in-code"v-model="codice" placeholder="Inserisci il Codice Lezione"> oppure scansiona QR code:
+<input id="in-code"v-model="codice" placeholder="Inserisci Codice Lezione"> oppure scansiona QR code:
 <button @click="startScan">📷 QR</button>
 
 <div id="qr-reader" :class="{'display-none': !scanning}">
@@ -215,8 +246,6 @@
 
 <br><br>
 <button @click="start" :disabled="running">INVIA</button>
-<button @click="exportJson">Export JSON</button>
-<input type="file" @change="importJson">
 
 <div v-if="percent>0">
 <div class="progress"><div class="bar" :style="{width:percent+'%'}"></div></div>
@@ -247,7 +276,7 @@ createApp({
       percent: 0,
       running: false,
       finished: false,
-      logs: [], // {message: string, result: string, sttaus: string'}
+      logs: [], // {message: string, result: string, status: string'}
       filterText: "",
       apiUrl: "/.netlify/functions/proxy",
     };
@@ -281,7 +310,7 @@ createApp({
     },
     logsError() {
       return this.logs.filter(l => l.status === "fail");
-    }
+    },
   },
   methods: {
     add() {
@@ -341,10 +370,10 @@ createApp({
       this.finished = false;
       this.logs = [];
       this.percent = 0;
-      const totale = this.persone.length;
       let done = 0;
       const concurrency = 5;
-      let queue = [...this.persone];
+      let queue = [...this.persone.filter(p => p.abilitato === true)];
+      const total = queue.length;
       const promises = [];
       const processNext = async () => {
         if (queue.length === 0) return;
@@ -358,7 +387,7 @@ createApp({
             device_token: 'device_token',
             posto: '000',
             codice_lezione: this.codice,
-            action: 'CreateFromJSON'
+            action: 'CreateFromJSON'  
           };
           const res = await fetch(this.apiUrl, {
             method: "POST",
@@ -380,10 +409,9 @@ createApp({
           p.status = "fail";
           const message = `[${p.codicePersona} ${p.labelNominativo}]: ${e.message}`;
           this.logs.push({status: "fail", message: message, result: "error"});
-  
         }
         done++;
-        this.percent = Math.round(done / totale * 100);
+        this.percent = Math.round(done / total * 100);
         await processNext();
       };
       for (let i = 0; i < concurrency; i++) promises.push(processNext());
