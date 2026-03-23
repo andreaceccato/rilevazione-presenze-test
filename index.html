@@ -206,7 +206,11 @@
   }
   .container-scan {
     width: 100%;
-    max-width: 800px;
+    max-width: 900px;
+  }
+  .box-code-actions {
+    display: flex;
+    justify-content: space-between;
   }
 
 </style>
@@ -259,14 +263,14 @@
 <hr>
 
 <h3>Codice</h3>
-<div>
-  <input id="in-code"v-model="codice" placeholder="Inserisci Codice Lezione"> o 
+<div class="box-code-actions">
+  <input id="in-code"v-model="codice" placeholder="Inserisci Codice Lezione"> 
   <button @click="startScan">📷 QR code</button>
 </div>
 
 <div class="container-scan" :class="{'display-none': !scanning}">
   <div class="box-zoom" :data-zoom-ability="canZoom">
-     ZOOM <strong>[-]</strong><input id="in-zoom" type="range" value="1" min="1" max="5" step="0.1" @input="setZoom($event)"><strong>[+]</strong>
+     ZOOM<strong>[-]</strong><input id="in-zoom" type="range" value="1" min="1" max="10" step="0.1" @input="setZoom($event)"><strong>[+]</strong>
   </div>
 
   <div class="box-scan">
