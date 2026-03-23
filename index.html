@@ -270,7 +270,7 @@
 
 <div class="container-scan" :class="{'display-none': !scanning}">
   <div class="box-zoom" :data-zoom-ability="canZoom">
-     ZOOM<strong>[-]</strong><input id="in-zoom" type="range" value="5" min="1" max="10" step="0.1" v-model="zoomLevel" @input="setZoom($event)"><strong>[+]</strong>
+     ZOOM<strong>[-]</strong><input id="in-zoom" type="range" min="1" max="10" step="1" v-model="zoomLevel" @input="setZoom($event)"><strong>[+]</strong>
   </div>
 
   <div class="box-scan">
@@ -426,7 +426,7 @@ createApp({
          const track =  (this.qr && typeof this.qr.getRunningTrack === "function") ? this.qr.getRunningTrack() : null;
          if (!track) {
           console.log("No running track found: zoom non supported");
-          return
+          // return;
         }
         setZoom({target: {value: this.zoomLevel}});
         /* const capabilities = track.getCapabilities();
