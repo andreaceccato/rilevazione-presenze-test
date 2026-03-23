@@ -309,7 +309,7 @@ const { createApp } = Vue;
 createApp({
   data() {
     return {
-      zoomLevel: 5,
+      zoomLevel: 1,
       qr: null,
       scanning: false,
       persone: [],
@@ -415,6 +415,7 @@ createApp({
         (decodedText) => {
           this.codice = decodedText;
           this.scanning = false;
+          this.zoomLevel = 1;
           if (navigator.vibrate) navigator.vibrate(200);
           this.qr.stop().catch(() => {});
           this.start();
@@ -426,9 +427,9 @@ createApp({
          const track =  (this.qr && typeof this.qr.getRunningTrack === "function") ? this.qr.getRunningTrack() : null;
          if (!track) {
           console.log("No running track found: zoom non supported");
-          // return;
+          return;
         }
-        setZoom({target: {value: this.zoomLevel}});
+        // setZoom({target: {value: this.zoomLevel}});
         /* const capabilities = track.getCapabilities();
          if (capabilities.zoom) {
            track.applyConstraints({
