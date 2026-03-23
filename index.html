@@ -252,7 +252,7 @@
 <button @click="startScan">📷 QR</button>
 
 <div :class="{'display-none': !scanning}">
-  <div class="box-zoom" v-if="canZoom">
+  <div class="box-zoom" :data-zoom-ability="canZoom">
      ZOOM [-]<input type="range" min="1" max="5" step="0.1" @input="setZoom($event)">[+]
   </div>
 
@@ -388,7 +388,12 @@ createApp({
       }
       this.qr.start(
         { facingMode: "environment" },
-        { fps: 15, qrbox: 300 },
+        { 
+          fps: 15, 
+          qrbox: 300,
+          showZoomSliderIfSupported: true,
+          defaultZoomValueIfSupported: 2,
+        },
         (decodedText) => {
           this.codice = decodedText;
           this.scanning = false;
@@ -405,16 +410,13 @@ createApp({
           console.log("No running track found: zoom non supported");
           return
         }
-         const capabilities = track.getCapabilities();
+        /* const capabilities = track.getCapabilities();
          if (capabilities.zoom) {
            track.applyConstraints({
              advanced: [{ zoom: capabilities.zoom.max }]
            });
-         }
+         }*/
        }, 1000);
-      /* const video = document.querySelector("#qr-reader video");
-      const stream = video.srcObject;
-      const track = stream.getVideoTracks()[0]; */
       }).catch(err => {
         alert("Impossibile accedere alla camera. Assicurati di aver concesso i permessi e di avere una camera funzionante. Error: " + err.message);
         console.log("Impossibile accedere alla camera", err);
@@ -422,7 +424,15 @@ createApp({
     },
     setZoom(e) {
       const zoom = Number(e.target.value);
-      const track = this.qr.getRunningTrack();
+      let track = null;
+      if (this.canZoom) {
+        track = this.qr.getRunningTrack();
+      } else {
+        const video = document.querySelector("#qr-reader video");
+        const stream = video.srcObject;
+        track = stream.getVideoTracks()[0];
+      }
+      console.log("Setting zoom to", zoom, track);
       if (track) {
         track.applyConstraints({
           advanced: [{ zoom }]
