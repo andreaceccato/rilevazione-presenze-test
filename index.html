@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tool Registrazione Presenze PWA</title>
 
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-<script src="https://unpkg.com/html5-qrcode@2.3.8"></script>
+<script src="dist/vue.global.js"></script>
+<script src="dist/html5-qrcode@2.3.8.js"></script>
 
-<link rel="manifest" href="manifest.json">
+<!-- <link rel="manifest" href="manifest.json"> -->
 <meta name="theme-color" content="#4caf50">
 
 <style>
@@ -24,7 +24,8 @@
     color: #333;
   }
 
-  input[type=text] {
+  input[type=text],
+  input[type=number] {
     width: 100%;
     box-sizing: border-box;
     padding: 6px 8px;
@@ -33,7 +34,7 @@
     margin-bottom: 8px;
   }
 
-  input[type=text]:focus {
+  input:focus {
     border-color: #4caf50;
     outline: none;
   }
@@ -51,6 +52,14 @@
 
   button:hover {
     background: #45a049;
+  }
+
+  button.red {
+    background-color: rgb(241, 26, 26);
+  }
+
+  button.red:hover {
+    background: red;
   }
 
   table {
@@ -200,6 +209,7 @@
      background: rgba(255, 255, 255, 0.9);
      border-radius: 6px;
      box-shadow: 0 2px 5px #4caf50;
+     position: relative;
   }
   #in-zoom {
     width: 100%;
@@ -211,6 +221,14 @@
   .box-code-actions {
     display: flex;
     justify-content: space-between;
+  }
+  .layar-settings-zoom {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 3;
+    background-color: white;
+    padding: 0.5em;
   }
 
 </style>
@@ -268,11 +286,36 @@
   <button @click="startScan">📷 QR</button>
 </div>
 
-<div class="container-scan" :class="{'display-none': !scanning}">
+<div class="container-scan" v-show="scanning">
   <div class="box-zoom" :data-zoom-ability="canZoom">
-     ZOOM<strong>[-]</strong><input id="in-zoom" type="range" min="1" max="10" step="1" v-model="zoomLevel" @input="setZoom($event)"><strong>[+]</strong>
+    <button @click="toogleValueBool('openToolSettingZoom')">⚙️</button> ZOOM<strong>[-]</strong><input id="in-zoom" type="range" min="1" :max="customSettingsZoom.maxZoom" step="1" v-model="zoomLevel" @input="setZoom($event)"><strong>[+]</strong>
+    <div class="layar-settings-zoom" v-show="openToolSettingZoom">
+      <table >
+        IMPOSTAZIONI ZOOM
+        <tr>
+          <td>fps</td>
+          <td><input type="number" v-model="customSettingsZoom.fps"></td>
+        </tr>
+        <tr>
+          <td>qrbox</td>
+          <td><input type="number" min="50" v-model="customSettingsZoom.qrbox"></td>
+        </tr>
+        <tr>
+          <td>max zoom</td>
+          <td><input type="number" v-model="customSettingsZoom.maxZoom"></td>
+        </tr> 
+        <tr>
+          <td>abilita zoon <br>se supportato</td>
+          <td><input type="checkbox" v-model="customSettingsZoom.showZoomSliderIfSupported"></td>
+        </tr>
+        <tr>
+          <td>default zoom <br> se supportato</td>
+          <td><input type="number" v-model="customSettingsZoom.defaultZoomValueIfSupported"></td>
+        </tr>       
+      </table>
+      <button @click="setCustomSettingsZoom()">IMPOSTA</button> <button class="red" @click="setCustomSettingsZoom(true)">RESETTA</button>
+    </div>
   </div>
-
   <div class="box-scan">
     <div id="layar-laser">
       <div id="qr-overlay"></div>
@@ -309,6 +352,14 @@ const { createApp } = Vue;
 createApp({
   data() {
     return {
+      openToolSettingZoom: false,
+      customSettingsZoom: {
+          fps: 15, 
+          qrbox: 300,
+          maxZoom: 10,
+          showZoomSliderIfSupported: true,
+          defaultZoomValueIfSupported: 2,
+      },
       zoomLevel: 1,
       qr: null,
       scanning: false,
@@ -326,11 +377,14 @@ createApp({
     const saved = localStorage.getItem("listaPersone");
     if (saved) this.persone = JSON.parse(saved);
 
-    if ("serviceWorker" in navigator) {
+    const savedSatting = localStorage.getItem("customSettingsZoom");
+    if (savedSatting) this.customSettingsZoom = JSON.parse(savedSatting);
+
+    /*if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js")
         .then(() => console.log("Service Worker registrato"))
         .catch(err => console.log(err));
-    }
+    }*/
   },
   watch: {
     persone: {
@@ -338,7 +392,7 @@ createApp({
         localStorage.setItem("listaPersone", JSON.stringify(this.persone));
       },
       deep: true
-    }
+    },
   },
   computed: {
     filteredPersone() {
@@ -362,6 +416,9 @@ createApp({
     }
   },
   methods: {
+    toogleValueBool(key) {
+      this[key] = !this[key]
+    },
     add() {
       this.persone.push({
         codicePersona: "",
@@ -392,6 +449,20 @@ createApp({
       };
       reader.readAsText(file);
     },
+    setCustomSettingsZoom(reset = false) {
+      if (reset)  {
+        this.customSettingsZoom = {
+          fps: 15, 
+          qrbox: 300,
+          maxZoom: 10,
+          showZoomSliderIfSupported: true,
+          defaultZoomValueIfSupported: 2,
+        };
+      }
+      localStorage.setItem("customSettingsZoom", JSON.stringify(this.customSettingsZoom));
+      this.openToolSettingZoom = false;
+      this.startScan();
+    },
     startScan() {
       if (this.scanning) {
         this.scanning = false;
@@ -407,10 +478,10 @@ createApp({
       this.qr.start(
         { facingMode: "environment" },
         { 
-          fps: 15, 
-          qrbox: 300,
-          showZoomSliderIfSupported: true,
-          defaultZoomValueIfSupported: 2,
+          fps: this.customSettingsZoom.fps, 
+          qrbox: this.customSettingsZoom.qrbox,
+          showZoomSliderIfSupported: this.customSettingsZoom.showZoomSliderIfSupported,
+          defaultZoomValueIfSupported: this.customSettingsZoom.defaultZoomValueIfSupported,
         },
         (decodedText) => {
           this.codice = decodedText;
