@@ -58,6 +58,16 @@
     background-color: rgb(241, 26, 26);
   }
 
+  .btn-settings {
+    cursor: pointer;
+    border: 1px solid gray;
+    border-radius: 3px;
+    background-color: white;
+    font-size: 1.1em;
+    padding: 0 2px;
+    text-align: center;
+  }
+
   button.red:hover {
     background: red;
   }
@@ -288,7 +298,7 @@
 
 <div class="container-scan" v-show="scanning">
   <div class="box-zoom" :data-zoom-ability="canZoom">
-    <button @click="toogleValueBool('openToolSettingZoom')">⚙️</button> ZOOM<strong>[-]</strong><input id="in-zoom" type="range" min="1" :max="customSettingsZoom.maxZoom" step="1" v-model="zoomLevel" @input="setZoom($event)"><strong>[+]</strong>
+    <span class="btn-settings" @click="toogleValueBool('openToolSettingZoom')">⚙️</span> ZOOM<strong>[-]</strong><input id="in-zoom" type="range" min="1" :max="customSettingsZoom.maxZoom" step="1" v-model="zoomLevel" @input="setZoom($event)"><strong>[+]</strong>
     <div class="layar-settings-zoom" v-show="openToolSettingZoom">
       <table >
         IMPOSTAZIONI ZOOM
