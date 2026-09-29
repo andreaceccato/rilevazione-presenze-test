@@ -668,7 +668,7 @@ createApp({
         // REGEX: 
         // Cerca una parola isolata (\b) composta solo da lettere (A-Z) e numeri (0-9)
         // che abbia una lunghezza compresa tra un minimo di 6 e un massimo di 10 caratteri.
-        const regexCodice = /\b[A-Z0-9]{6,10}\b/i;
+        const regexCodice = /\b[A-Z0-9]{6,10}\b/;
         const match = text.match(regexCodice);
 
         if (match) {
