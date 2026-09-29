@@ -358,7 +358,15 @@ Tipo di codice:
 </div>
 </div>
 
+<div v-if="showLogsDev">
+  <h3>Logs</h3>
+  <ul>
+    <li v-for="log in logsDevelopment">{{ log }}</li>
+  </ul>
 </div>
+
+</div>
+
 
 <script>
 const { createApp } = Vue;
@@ -388,9 +396,16 @@ createApp({
       logs: [], // {message: string, result: string, status: string'}
       filterText: "",
       apiUrl: "/.netlify/functions/proxy",
+      showLogsDev: false,
+      logsDevelopment: []
     };
   },
   mounted() {
+
+    const params = new URLSearchParams(window.location.search);
+    this.showLogsDev = params.get('log') === 'true'; 
+    this.printLog('info', "Logs dev activated...");
+
     const saved = localStorage.getItem("listaPersone");
     if (saved) this.persone = JSON.parse(saved);
 
@@ -433,6 +448,13 @@ createApp({
     }
   },
   methods: {
+    printLog(prefix = "info", message, ...parmams) {
+      const text = `[${prefix}] ${message}`;
+      console.log(text, ...parmams);
+      if (this.showLogsDev) {
+        this.logsDevelopment.push([text, ...parmams]);
+      }
+    },
     toogleValueBool(key) {
       this[key] = !this[key]
     },
@@ -521,7 +543,7 @@ createApp({
        setTimeout(() => {
          const track =  (this.qr && typeof this.qr.getRunningTrack === "function") ? this.qr.getRunningTrack() : null;
          if (!track) {
-          console.log("No running track found: zoom non supported");
+          this.printLog('info', "No running track found: zoom non supported");
           return;
         }
         // setZoom({target: {value: this.zoomLevel}});
@@ -534,7 +556,7 @@ createApp({
        }, 1000);
       }).catch(err => {
         alert("Impossibile accedere alla camera. Assicurati di aver concesso i permessi e di avere una camera funzionante. Error: " + err.message);
-        console.log("Impossibile accedere alla camera", err);
+        this.printLog('error', "Impossibile accedere alla camera", err);
       });
     },
     setZoom(e) {
@@ -547,7 +569,7 @@ createApp({
         const stream = video.srcObject;
         track = stream.getVideoTracks()[0];
       }
-      console.log("Setting zoom to", zoom, track);
+      this.printLog('info',"Setting zoom to", zoom, track);
       if (track) {
         track.applyConstraints({
           advanced: [{ zoom }]
@@ -619,14 +641,14 @@ createApp({
     },
 
     async captureFrameAndRecognize() {
-      console.log("Cattura frame per OCR");
+      this.printLog('info', "Cattura frame per OCR");
       // Se sta già elaborando il frame precedente, salta questo giro
       if (this.isProcessingOcr) return; 
-      console.log("Elaborazione frame per OCR");
+      this.printLog('info', "Elaborazione frame per OCR");
       // Cerca il tag video generato dinamicamente da html5-qrcode
       const video = document.querySelector("#qr-reader video");
       if (!video || video.paused || video.ended) return;
-      console.log("Video frame pronto per OCR");
+      this.printLog('info', "Video frame pronto per OCR");
       this.isProcessingOcr = true;
 
       // Creiamo il canvas per catturare lo screenshot del video
@@ -653,7 +675,7 @@ createApp({
           this.finishScanSuccess(); // Blocca tutto e invia
         }
       } catch (error) {
-        console.error("Errore OCR:", error);
+        this.printLog('error', "Errore OCR:", error);
       } finally {
         this.isProcessingOcr = false;
       }
