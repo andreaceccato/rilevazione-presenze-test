@@ -359,7 +359,8 @@ Tipo di codice:
 </div>
 
 <div v-if="showLogsDev">
-  <h3>Logs</h3>
+  <hr>
+  <h3>Logs</h3> <button @click="logsDevelopment=[]">Pulisci</button>
   <ul>
     <li v-for="log in logsDevelopment">{{ log }}</li>
   </ul>
@@ -641,7 +642,6 @@ createApp({
     },
 
     async captureFrameAndRecognize() {
-      this.printLog('info', "Cattura frame per OCR");
       // Se sta già elaborando il frame precedente, salta questo giro
       if (this.isProcessingOcr) return; 
       this.printLog('info', "Elaborazione frame per OCR");
@@ -662,12 +662,13 @@ createApp({
         // Eseguiamo l'OCR sul canvas appena generato
         const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
           // Opzionale: velocizza il riconoscimento limitando i caratteri accettati
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-'
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
         });
 
-        // REGEX: Personalizzala in base alla struttura della tua stringa alfanumerica
-        // Esempio: stringa alfanumerica da 6 a 15 caratteri
-        const regexCodice = /[A-Z0-9]{6,15}/i; 
+        // REGEX: 
+        // Cerca una parola isolata (\b) composta solo da lettere (A-Z) e numeri (0-9)
+        // che abbia una lunghezza compresa tra un minimo di 6 e un massimo di 10 caratteri.
+        const regexCodice = /\b[A-Z0-9]{6,10}\b/i;
         const match = text.match(regexCodice);
 
         if (match) {
