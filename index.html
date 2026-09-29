@@ -7,6 +7,7 @@
 
 <script src="dist/vue.global.js"></script>
 <script src="dist/html5-qrcode@2.3.8.js"></script>
+<script src="dist/tesseract@5.js"></script>
 
 <!-- <link rel="manifest" href="manifest.json"> -->
 <meta name="theme-color" content="#4caf50">
@@ -291,9 +292,12 @@
 <hr>
 
 <h3>Codice</h3>
+Tipo di codice:
+<input v-model="typeCode" type="radio" value="alphanumeric"> <label>Testo</label>
+<input v-model="typeCode" type="radio" value="qr"> <label>QR</label>
 <div class="box-code-actions">
-  <input id="in-code"v-model="codice" placeholder="Inserisci Codice Lezione"> 
-  <button @click="startScan">📷 QR</button>
+  <input id="in-code" v-model="codice" placeholder="Inserisci Codice Lezione"> 
+  <button @click="startScan">📷 SCASNSIONA </button>
 </div>
 
 <div class="container-scan" v-show="scanning">
@@ -375,6 +379,9 @@ createApp({
       scanning: false,
       persone: [],
       codice: "",
+      typeCode: "text", // 'qr' o 'text
+      ocrInterval: null,
+      isProcessingOcr: false, // evita scansioni OCR sovrapposte se il dispositivo è lento
       percent: 0,
       running: false,
       finished: false,
@@ -475,12 +482,10 @@ createApp({
     },
     startScan() {
       if (this.scanning) {
-        this.scanning = false;
-        if (this.qr) {
-          this.qr.stop().catch(() => {});
-        }
-        return
+        this.stopAllScanning();
+        return;
       }
+
       this.scanning = true;
       if (!this.qr) {
         this.qr = new Html5Qrcode("qr-reader");
@@ -494,6 +499,9 @@ createApp({
           defaultZoomValueIfSupported: this.customSettingsZoom.defaultZoomValueIfSupported,
         },
         (decodedText) => {
+          // Se siamo in modalità testo, ignoriamo i QR Code rilevati
+          if (this.typeCode !== 'qr') return;
+
           this.codice = decodedText;
           this.scanning = false;
           this.zoomLevel = 1;
@@ -503,6 +511,12 @@ createApp({
         },
         (err) => {}
       ).then(() => {
+
+        // Se l'utente ha avviato la scansione in modalità testo, facciamo partire l'OCR
+        if (this.typeCode === 'text') {
+          this.startOcrLoop();
+        }
+
       // set timeout to apply zoom after camera starts
        setTimeout(() => {
          const track =  (this.qr && typeof this.qr.getRunningTrack === "function") ? this.qr.getRunningTrack() : null;
@@ -593,7 +607,79 @@ createApp({
       await Promise.all(promises);
       this.running = false;
       this.finished = true;
+    },
+
+    // Avvia il ciclo di cattura frame per l'OCR
+    startOcrLoop() {
+      this.isProcessingOcr = false;
+      // Esegue il controllo ogni 1200ms per non impallare i dispositivi meno potenti
+      this.ocrInterval = setInterval(() => {
+        this.captureFrameAndRecognize();
+      }, 1200);
+    },
+
+    async captureFrameAndRecognize() {
+      console.log("Cattura frame per OCR");
+      // Se sta già elaborando il frame precedente, salta questo giro
+      if (this.isProcessingOcr) return; 
+      console.log("Elaborazione frame per OCR");
+      // Cerca il tag video generato dinamicamente da html5-qrcode
+      const video = document.querySelector("#qr-reader video");
+      if (!video || video.paused || video.ended) return;
+      console.log("Video frame pronto per OCR");
+      this.isProcessingOcr = true;
+
+      // Creiamo il canvas per catturare lo screenshot del video
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      try {
+        // Eseguiamo l'OCR sul canvas appena generato
+        const { data: { text } } = await Tesseract.recognize(canvas, 'eng', {
+          // Opzionale: velocizza il riconoscimento limitando i caratteri accettati
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-'
+        });
+
+        // REGEX: Personalizzala in base alla struttura della tua stringa alfanumerica
+        // Esempio: stringa alfanumerica da 6 a 15 caratteri
+        const regexCodice = /[A-Z0-9]{6,15}/i; 
+        const match = text.match(regexCodice);
+
+        if (match) {
+          this.codice = match[0]; // Imposta il valore nel campo di input
+          this.finishScanSuccess(); // Blocca tutto e invia
+        }
+      } catch (error) {
+        console.error("Errore OCR:", error);
+      } finally {
+        this.isProcessingOcr = false;
+      }
+    },
+
+  // Centralizza il reset e lo spegnimento in caso di successo
+  finishScanSuccess() {
+    this.scanning = false;
+    this.zoomLevel = 1;
+    if (navigator.vibrate) navigator.vibrate(200);
+    
+    this.stopAllScanning();
+    this.start(); // Il tuo metodo originale che invia la chiamata POST
+  },
+
+  // Spegne sia la fotocamera che i timer OCR
+  stopAllScanning() {
+    this.scanning = false;
+    if (this.ocrInterval) {
+      clearInterval(this.ocrInterval);
+      this.ocrInterval = null;
     }
+    if (this.qr) {
+      this.qr.stop().catch(() => {});
+    }
+  }
   }
 }).mount("#app");
 </script>
