@@ -325,6 +325,10 @@ Tipo di codice:
         <tr>
           <td>default zoom <br> se supportato</td>
           <td><input type="number" v-model="customSettingsZoom.defaultZoomValueIfSupported"></td>
+        </tr>
+        <tr>
+          <td>timer (ms) scan OCR</td>
+          <td><input type="number" v-model="customSettingsZoom.timerOcr"></td>
         </tr>       
       </table>
       <button @click="setCustomSettingsZoom()">IMPOSTA</button> <button class="red" @click="setCustomSettingsZoom(true)">RESETTA</button>
@@ -382,6 +386,7 @@ createApp({
           maxZoom: 10,
           showZoomSliderIfSupported: true,
           defaultZoomValueIfSupported: 2,
+          timerOcr: 1000 // intervallo di tempo tra le scansioni OCR in ms
       },
       zoomLevel: 1,
       qr: null,
@@ -408,11 +413,14 @@ createApp({
     this.printLog('info', "Logs dev activated...");
 
     const saved = localStorage.getItem("listaPersone");
-    if (saved) this.persone = JSON.parse(saved);
-
+    if (saved) {
+      this.persone = JSON.parse(saved);
+    }
+    
     const savedSatting = localStorage.getItem("customSettingsZoom");
-    if (savedSatting) this.customSettingsZoom = JSON.parse(savedSatting);
-
+    if (savedSatting) {
+      this.customSettingsZoom = Object.assign(this.customSettingsZoom, JSON.parse(savedSatting));
+    }
     /*if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js")
         .then(() => console.log("Service Worker registrato"))
@@ -497,6 +505,7 @@ createApp({
           maxZoom: 10,
           showZoomSliderIfSupported: true,
           defaultZoomValueIfSupported: 2,
+          timerOcr: 1000
         };
       }
       localStorage.setItem("customSettingsZoom", JSON.stringify(this.customSettingsZoom));
@@ -635,10 +644,10 @@ createApp({
     // Avvia il ciclo di cattura frame per l'OCR
     startOcrLoop() {
       this.isProcessingOcr = false;
-      // Esegue il controllo ogni 1200ms per non impallare i dispositivi meno potenti
+      // Esegue il controllo ogni 1000ms (default) per non impallare i dispositivi meno potenti
       this.ocrInterval = setInterval(() => {
         this.captureFrameAndRecognize();
-      }, 1200);
+      }, this.customSettingsZoom.timerOcr);
     },
 
     async captureFrameAndRecognize() {
@@ -666,14 +675,36 @@ createApp({
         });
 
         // REGEX: 
-        // Cerca una parola isolata (\b) composta solo da lettere (A-Z) e numeri (0-9)
-        // che abbia una lunghezza compresa tra un minimo di 6 e un massimo di 10 caratteri.
-        const regexCodice = /\b[A-Z0-9]{6,10}\b/;
-        const match = text.match(regexCodice);
+        // Cerca parole isolate (\b) composta solo da lettere (A-Z) e numeri (0-9)
+        // che abbiano una lunghezza compresa tra un minimo di 6 e un massimo di 10 caratteri.
+        const regexCodice = /\b[A-Z0-9]{6,10}\b/g;
+        const matches = text.match(regexCodice);
 
-        if (match) {
-          this.codice = match[0]; // Imposta il valore nel campo di input
-          this.finishScanSuccess(); // Blocca tutto e invia
+        if (matches) {
+          const paroleDaEscludere = [
+              "RILEVAZIONE", 
+              "PRESENZA",
+              "STUDENTE", 
+              "CODICE",
+              "LEZIONE"
+          ];
+
+          // Filtra cercando il codice reale
+          // La prima occorrenza che non è in black list è il presunto codice
+          const codeTrue = matches.find(stringRilevata => {
+            const inBlacklist = paroleDaEscludere.some(stringBlacklist => 
+              this.isTooSimilar(stringRilevata, stringBlacklist)
+            );
+            
+            return !inBlacklist;
+          });
+
+          if (codeTrue) {
+            // Imposta il valore nel campo di input
+            this.codice = codeTrue.toUpperCase();
+            // Blocca tutto e invia
+            this.finishScanSuccess();
+          }
         }
       } catch (error) {
         this.printLog('error', "Errore OCR:", error);
@@ -702,8 +733,32 @@ createApp({
     if (this.qr) {
       this.qr.stop().catch(() => {});
     }
+  },
+  
+  isTooSimilar(word1, word2) {
+    const w1 = word1.toUpperCase().trim();
+    const w2 = word2.toUpperCase().trim();
+    
+    // 1. Controllo Identità
+    if (w1 === w2) return true;
+    
+    // 2. Controllo Sottostringa
+    if (w2.indexOf(w1) >= 0 || w1.indexOf(w2) >= 0) return true;
+    
+    // Se hanno lunghezze troppo diverse, non compatibili
+    if (Math.abs(w1.length - w2.length) > 1) return false;
+
+    // 3. Controllo tolleranza errori OCR (Distanza caratteri - distanza di Levenshtein)
+    let diffCount = 0;
+    for (let i = 0; i < Math.min(w1.length, w2.length); i++) {
+      if (w1[i] !== w2[i]) diffCount++;
+    }
+    
+    return diffCount <= 2;
   }
-  }
+
+}
+
 }).mount("#app");
 </script>
 
