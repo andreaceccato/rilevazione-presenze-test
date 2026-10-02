@@ -241,7 +241,18 @@
     background-color: white;
     padding: 0.5em;
   }
-
+  .input-codice-persona {
+    width: 10em;
+  }
+  .input-nominativo {
+    width: 8em;
+  }
+  .input-posto {
+    width: 40px;
+  }
+  .input-device-token {
+    width: 155px;
+  }
 </style>
 </head>
 <body>
@@ -270,18 +281,22 @@
 <th>Nominativo</th>
 <th>Abilitato</th>
 <th>Stato</th>
+<th>Posto</th>
+<th>DeviceToken</th>
 <th></th>
 </tr>
 </thead>
 <tbody>
 <tr v-for="(p,i) in filteredPersone" :key="i">
-<td><input v-model="p.codicePersona"></td>
-<td><input v-model="p.labelNominativo"></td>
+<td><div class="input-codice-persona"><input type="text" v-model="p.codicePersona"></div></td>
+<td><div class="input-nominativo"><input type="text" v-model="p.labelNominativo"></div></td>
 <td style="text-align:center"><input type="checkbox" v-model="p.abilitato"></td>
 <td>
 <span v-if="p.status==='ok'" class="status-ok">✔</span>
 <span v-else-if="p.status==='fail'" class="status-fail">❌</span>
 </td>
+<td><div class="input-posto"><input type="text" v-model="p.posto"></div></td>
+<td><div class="input-device-token"><input type="text" v-model="p.deviceToken"></div></td></td>
 <td><button @click="remove(i)">-</button></td>
 </tr>
 </tbody>
@@ -295,6 +310,9 @@
 Tipo di codice:
 <input v-model="typeCode" type="radio" value="text"> <label>Testo</label>
 <input v-model="typeCode" type="radio" value="qr"> <label>QR</label>
+
+<br/><br/>
+
 <div class="box-code-actions">
   <input id="in-code" v-model="codice" placeholder="Inserisci Codice Lezione"> 
   <button @click="startScan">📷 SCASNSIONA </button>
@@ -343,8 +361,8 @@ Tipo di codice:
   </div>
 </div>
 
+<br>
 
-<br><br>
 <button @click="start" :disabled="running">INVIA</button>
 
 <div v-if="percent>0">
@@ -472,11 +490,21 @@ createApp({
         codicePersona: "",
         labelNominativo: "",
         abilitato: true,
-        status: ""
+        status: "",
+        posto: this.persone.length.toString().padStart(3, "0"),
+        deviceToken: 'device_token_' + this.randomString(6)
       });
+      this.fixPost();
     },
     remove(i) {
       this.persone.splice(i, 1);
+      this.fixPost();
+    },
+    fixPost() {
+      // Correggi posto per tutti
+      this.persone.forEach((p, index) => {
+        p.posto = index.toString().padStart(3, "0");
+      });
     },
     exportJson() {
       const data = JSON.stringify(this.persone, null, 2);
@@ -605,20 +633,21 @@ createApp({
             dati_addizionali: {longitudine: '', latitudine: '', timestamp: Date.now()}, 
             matricola_studente: p.codicePersona,
             lingua: 'it', 
-            device_token: 'device_token',
-            posto: '000',
+            device_token: p.deviceToken,
+            posto: p.posto,
             codice_lezione: this.codice,
             action: 'CreateFromJSON'  
           };
+          this.printLog('info', "Invio payload", payload);
           const res = await fetch(this.apiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json", "Accept": "*/*" },
             body: JSON.stringify(payload)
           });
-          console.log(res);
+          this.printLog('info', "Risposta API", res);
           if (!res.ok) throw new Error();
           const data = await res.json();
-          console.log(data);
+          this.printLog('info', "Dati ricevuti", data);
           if (data.result !== "failure" && data.result !== "warning") {
             p.status = "ok";
           } else {
@@ -626,7 +655,7 @@ createApp({
           }
           this.logs.push({status: p.status, message: `[${p.codicePersona} ${p.labelNominativo}]: ${data.message}`, result: data.result});
         } catch (e) {
-          console.log(e);
+          this.printLog('info', "Errore durante l'invio del payload", e);
           p.status = "fail";
           const message = `[${p.codicePersona} ${p.labelNominativo}]: ${e.message}`;
           this.logs.push({status: "fail", message: message, result: "error"});
@@ -713,50 +742,52 @@ createApp({
       }
     },
 
-  // Centralizza il reset e lo spegnimento in caso di successo
-  finishScanSuccess() {
-    this.scanning = false;
-    this.zoomLevel = 1;
-    if (navigator.vibrate) navigator.vibrate(200);
-    
-    this.stopAllScanning();
-    this.start(); // Il tuo metodo originale che invia la chiamata POST
-  },
+    // Centralizza il reset e lo spegnimento in caso di successo
+    finishScanSuccess() {
+      this.scanning = false;
+      this.zoomLevel = 1;
+      if (navigator.vibrate) navigator.vibrate(200);
+      
+      this.stopAllScanning();
+      this.start();
+    },
 
-  // Spegne sia la fotocamera che i timer OCR
-  stopAllScanning() {
-    this.scanning = false;
-    if (this.ocrInterval) {
-      clearInterval(this.ocrInterval);
-      this.ocrInterval = null;
-    }
-    if (this.qr) {
-      this.qr.stop().catch(() => {});
-    }
-  },
-  
-  isTooSimilar(word1, word2) {
-    const w1 = word1.toUpperCase().trim();
-    const w2 = word2.toUpperCase().trim();
+    // Spegne sia la fotocamera che i timer OCR
+    stopAllScanning() {
+      this.scanning = false;
+      if (this.ocrInterval) {
+        clearInterval(this.ocrInterval);
+        this.ocrInterval = null;
+      }
+      if (this.qr) {
+        this.qr.stop().catch(() => {});
+      }
+    },
     
-    // 1. Controllo Identità
-    if (w1 === w2) return true;
-    
-    // 2. Controllo Sottostringa
-    if (w2.indexOf(w1) >= 0 || w1.indexOf(w2) >= 0) return true;
-    
-    // Se hanno lunghezze troppo diverse, non compatibili
-    if (Math.abs(w1.length - w2.length) > 1) return false;
+    isTooSimilar(word1, word2) {
+      const w1 = word1.toUpperCase().trim();
+      const w2 = word2.toUpperCase().trim();
+      
+      // 1. Controllo Identità
+      if (w1 === w2) return true;
+      
+      // 2. Controllo Sottostringa
+      if (w2.indexOf(w1) >= 0 || w1.indexOf(w2) >= 0) return true;
+      
+      // Se hanno lunghezze troppo diverse, non compatibili
+      if (Math.abs(w1.length - w2.length) > 1) return false;
 
-    // 3. Controllo tolleranza errori OCR (Distanza caratteri - distanza di Levenshtein)
-    let diffCount = 0;
-    for (let i = 0; i < Math.min(w1.length, w2.length); i++) {
-      if (w1[i] !== w2[i]) diffCount++;
+      // 3. Controllo tolleranza errori OCR (Distanza caratteri - distanza di Levenshtein)
+      let diffCount = 0;
+      for (let i = 0; i < Math.min(w1.length, w2.length); i++) {
+        if (w1[i] !== w2[i]) diffCount++;
+      }
+      
+      return diffCount <= 2;
+    },
+    randomString(l) {
+      return Math.random().toString(36).substring(2, 2 + l);
     }
-    
-    return diffCount <= 2;
-  }
-
 }
 
 }).mount("#app");
