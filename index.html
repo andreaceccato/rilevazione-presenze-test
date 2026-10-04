@@ -253,6 +253,17 @@
   .input-device-token {
     width: 155px;
   }
+  .btn-refresh-device-token {
+    background-color: #dddd;
+    color: black;
+    border: black solid 1px;
+    border-radius: 3px;
+    padding: 2px 6px;
+    cursor: pointer;
+  }
+  .btn-refresh-device-token:hover {
+    background-color: white;
+  }
 </style>
 </head>
 <body>
@@ -277,12 +288,12 @@
 <table>
 <thead>
 <tr>
-<th>Codice Persona</th>
+<th>CodicePersona</th>
 <th>Nominativo</th>
 <th>Abilitato</th>
 <th>Stato</th>
 <th>Posto</th>
-<th>DeviceToken</th>
+<th>DeviceToken <button class="btn-refresh-device-token" @click="refreshAllDeviceToken" title="Aggiorna tutti i token">⟳</button></th>
 <th></th>
 </tr>
 </thead>
@@ -297,7 +308,7 @@
 </td>
 <td><div class="input-posto"><input type="text" v-model="p.posto"></div></td>
 <td><div class="input-device-token"><input type="text" v-model="p.deviceToken"></div></td></td>
-<td><button @click="remove(i)">-</button></td>
+<td><button class="red" title="Rimuovi" @click="remove(i)">-</button></td>
 </tr>
 </tbody>
 </table>
@@ -456,7 +467,7 @@ createApp({
   computed: {
     filteredPersone() {
       if (!this.filterText) return this.persone;
-      const text = this.filterText.toLowerCase();
+      const text = this.filterText.toLowerCase().trim();
       return this.persone.filter(p =>
         p.codicePersona.toLowerCase().includes(text) ||
         p.labelNominativo.toLowerCase().includes(text)
@@ -492,18 +503,23 @@ createApp({
         abilitato: true,
         status: "",
         posto: this.persone.length.toString().padStart(3, "0"),
-        deviceToken: 'device_token_' + this.randomString(6)
+        deviceToken: this.getDeviceToken()
       });
-      this.fixPost();
+      this.fixSeat();
     },
     remove(i) {
       this.persone.splice(i, 1);
-      this.fixPost();
+      this.fixSeat();
     },
-    fixPost() {
+    fixSeat() {
       // Correggi posto per tutti
       this.persone.forEach((p, index) => {
         p.posto = index.toString().padStart(3, "0");
+      });
+    },
+    refreshAllDeviceToken() {
+      this.persone.forEach(p => {
+        p.deviceToken = this.getDeviceToken();
       });
     },
     exportJson() {
@@ -787,6 +803,9 @@ createApp({
     },
     randomString(l) {
       return Math.random().toString(36).substring(2, 2 + l);
+    },
+    getDeviceToken() {
+      return 'device_token_' + this.randomString(6);
     }
 }
 
