@@ -96,7 +96,17 @@
   tr:nth-child(even) {
     background: #f9f9f9;
   }
-
+  .th-posto {
+    display: flex;
+    align-items: center;
+  }
+  .th-posto i {
+    font-size: 20px;
+    margin-right: 1px;
+  }
+  .th-posto select {
+    width: 45px;
+  }
   #table-container {
     max-height: 400px;
     overflow-y: auto;
@@ -105,7 +115,7 @@
   }
 
   #in-code {
-    height: 30px;
+    height: inherit;
     border-radius: 4px;
     border: 1px solid #4caf50;
     font-size: 1.1em;
@@ -234,6 +244,24 @@
     display: flex;
     justify-content: space-between;
   }
+  .box-code-actions input,
+  .box-code-actions button {
+    height: 46px;
+  }
+  .box-code-actions input:focus {
+    box-shadow: 0 0 5px #4caf50;
+  }
+  .box-code-actions button {
+    border: 1px solid #4caf50;
+  }
+  #btn-send {
+    height: 46px;
+    width: 100px;
+  }
+  #btn-send:hover,
+  #btn-send:active {
+    font-weight: 900;
+  }
   .layar-settings-zoom {
     position: absolute;
     top: 100%;
@@ -246,10 +274,13 @@
     width: 10em;
   }
   .input-nominativo {
-    width: 8em;
+    width: 4em;
   }
   .input-posto {
     width: 40px;
+  }
+  input[type=checkbox] {
+    cursor: pointer;
   }
   .input-device-token {
     width: 155px;
@@ -293,7 +324,13 @@
 <th>Nominativo</th>
 <th>Abilitato</th>
 <th>Stato</th>
-<th>Posto</th>
+<th class="th-posto">
+  <i>🪑</i>
+  <select v-model="seatMode" @change="fixSeat">
+    <option value="equals">0-0</option>
+    <option value="incremental">0-N</option>
+  </select>
+</th>
 <th>DeviceToken <button class="btn-refresh-device-token" @click="refreshAllDeviceToken" title="Aggiorna tutti i token">⟳</button></th>
 <th></th>
 </tr>
@@ -315,7 +352,7 @@
 </table>
 </div>
 
-<button @click="add">+ aggiungi</button>
+<button @click="add">+ AGGIUNGI PERSONA</button>
 <hr>
 
 <h3>Codice</h3>
@@ -375,7 +412,7 @@ Tipo di codice:
 
 <br>
 
-<button @click="start" :disabled="running">INVIA</button>
+<button id="btn-send" @click="start" :disabled="running">INVIA</button>
 
 <div v-if="percent>0">
 <div class="progress"><div class="bar" :style="{width:percent+'%'}"></div></div>
@@ -422,6 +459,7 @@ createApp({
       qr: null,
       scanning: false,
       persone: [],
+      seatMode: "incremental", // "equals" o "incremental"
       codice: "",
       typeCode: "text", // 'qr' o 'text
       ocrInterval: null,
@@ -447,6 +485,11 @@ createApp({
       this.persone = JSON.parse(saved);
     }
     
+    const seatMode = localStorage.getItem("seatMode");
+    if (seatMode) {
+      this.seatMode = seatMode;
+    }
+
     const savedSatting = localStorage.getItem("customSettingsZoom");
     if (savedSatting) {
       this.customSettingsZoom = Object.assign(this.customSettingsZoom, JSON.parse(savedSatting));
@@ -464,6 +507,11 @@ createApp({
       },
       deep: true
     },
+    seatMode: {
+      handler() {
+        localStorage.setItem("seatMode", this.seatMode);
+      }
+    }
   },
   computed: {
     filteredPersone() {
@@ -514,6 +562,12 @@ createApp({
     },
     fixSeat() {
       // Correggi posto per tutti
+      if (this.seatMode === "equals") {
+        this.persone.forEach(p => {
+          p.posto = "000";
+        });
+        return;
+      }
       this.persone.forEach((p, index) => {
         p.posto = index.toString().padStart(3, "0");
       });
@@ -648,7 +702,7 @@ createApp({
           const payload = {
             autenticazione: true,
             dati_addizionali: {longitudine: '', latitudine: '', timestamp: Date.now()}, 
-            matricola_studente: p.codicePersona,
+            matricola_studente: p.codicePersona.trim(),
             lingua: 'it', 
             device_token: p.deviceToken,
             posto: p.posto,
